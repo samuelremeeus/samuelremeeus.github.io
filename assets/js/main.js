@@ -6,6 +6,31 @@
   const $ = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const MEDIA_BASE = String(window.MEDIA_BASE || "").replace(/\/+$/, "");
+  const cleanMediaPath = path => String(path).replace(/^\/+/, "");
+  const imageUrl = path => MEDIA_BASE
+    ? `${MEDIA_BASE}/${cleanMediaPath(path)}`
+    : `assets/img/${cleanMediaPath(path)}`;
+  const videoUrl = path => MEDIA_BASE
+    ? `${MEDIA_BASE}/video/${cleanMediaPath(path)}`
+    : `assets/video/${cleanMediaPath(path)}`;
+
+  $$('[data-media-path]').forEach(el => {
+    el.src = imageUrl(el.dataset.mediaPath);
+  });
+
+  /* ---------- casual media-download deterrence ---------- */
+  const protectedMediaSelector = "img,video,#heroBg .slide,.intro .iphoto";
+  document.addEventListener("contextmenu", e => {
+    if (e.target instanceof Element && e.target.closest(protectedMediaSelector)) {
+      e.preventDefault();
+    }
+  });
+  document.addEventListener("dragstart", e => {
+    if (e.target instanceof Element && e.target.closest("img,video")) {
+      e.preventDefault();
+    }
+  });
 
   // keep keyboard focus inside an open overlay
   function trapFocus(container, e) {
@@ -48,7 +73,7 @@
     HERO.forEach((h, i) => {
       const s = document.createElement("div");
       s.className = "slide" + (i === 0 ? " active" : "");
-      s.style.backgroundImage = `url(assets/img/hero/${h}.jpg)`;
+      s.style.backgroundImage = `url("${imageUrl(`hero/${h}.jpg`)}")`;
       bg.appendChild(s);
     });
     if (reduce || HERO.length < 2) return;
@@ -87,7 +112,7 @@
         `<span class="pname">${p.name}</span>` +
         `<span class="pmeta"><span class="pcat">${p.cat}</span></span>` +
         `<span class="parrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>` +
-        `<span class="thumb" aria-hidden="true"><img src="assets/img/grid/${cover.id}.jpg" alt="" loading="lazy" decoding="async" style="transform:scale(${p.zoom||1})"></span>`;
+        `<span class="thumb" aria-hidden="true"><img src="${imageUrl(`grid/${cover.id}.jpg`)}" alt="" loading="lazy" decoding="async" style="transform:scale(${p.zoom||1})"></span>`;
       const openFrom = () => {
         const src = plv.classList.contains("on") ? plvImg : row.querySelector(".thumb img");
         openViewer(p.id, src && src.offsetParent !== null ? src : null);
@@ -107,7 +132,7 @@
   const canHover = window.matchMedia("(hover:hover)").matches;
   function showPreview(p, row) {
     if (!canHover || reduce || window.innerWidth <= 860) return;
-    plvImg.src = `assets/img/grid/${p.photos[0].id}.jpg`;
+    plvImg.src = imageUrl(`grid/${p.photos[0].id}.jpg`);
     plvImg.style.transform = `scale(${p.zoom || 1})`;
     if (row && (plvTX === 0 && plvTY === 0)) {     // keyboard focus before any mouse move
       const r = row.getBoundingClientRect();
@@ -188,7 +213,7 @@
       const el = document.createElement("div");
       el.className = "reel";
       el.innerHTML =
-        `<img class="poster" src="assets/video/poster/${x.file}.jpg" alt="${x.title}, ${x.sub} video still" loading="lazy" decoding="async">` +
+        `<img class="poster" src="${videoUrl(`poster/${x.file}.jpg`)}" alt="${x.title}, ${x.sub} video still" loading="lazy" decoding="async">` +
         `<div class="veil"></div>` +
         `<button type="button" class="play" aria-label="Play ${x.title}"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>` +
         `<div class="cap"><div class="t">${x.title}</div><div class="s">${x.sub}</div></div>`;
@@ -198,7 +223,7 @@
           if (el.classList.contains("playing")) return;
           if (!pv) {
             pv = document.createElement("video");
-            pv.src = `assets/video/${x.file}.mp4`;
+            pv.src = videoUrl(`${x.file}.mp4`);
             pv.muted = true; pv.loop = true; pv.playsInline = true;
             pv.className = "preview";
             el.insertBefore(pv, $(".veil", el));
@@ -218,9 +243,10 @@
         el.classList.remove("previewing");
         const v = document.createElement("video");
         v.className = "full";
-        v.src = `assets/video/${x.file}.mp4`;
+        v.src = videoUrl(`${x.file}.mp4`);
         v.controls = true; v.playsInline = true; v.preload = "auto";
-        v.setAttribute("poster", `assets/video/poster/${x.file}.jpg`);
+        v.setAttribute("controlslist", "nodownload");
+        v.setAttribute("poster", videoUrl(`poster/${x.file}.jpg`));
         el.appendChild(v); el.classList.add("playing");
         v.addEventListener("ended", () => { el.classList.remove("playing"); v.remove(); });
         $$("video", r).forEach(o => { if (o !== v) o.pause(); });
@@ -237,7 +263,7 @@
   const EASE_CB = "cubic-bezier(.22,.61,.36,1)";
   let curProj = null, vIdx = 0, vwOpener = null, cur = null;
 
-  const fullSrc = ph => `assets/img/full/${ph.id}.jpg`;
+  const fullSrc = ph => imageUrl(`full/${ph.id}.jpg`);
   const altText = () => `${curProj.name} ${curProj.cat} photography by Samuel Remeeus`;
   function makeFrame(src) { const im = document.createElement("img"); im.className = "vw-frame"; im.alt = altText(); im.src = src; return im; }
   function syncMeta() {
@@ -254,7 +280,7 @@
     vwOpener = document.activeElement; vIdx = 0;
     vwTitle.textContent = curProj.name; vwCat.textContent = curProj.cat;
     vwThumbs.innerHTML = curProj.photos.map((ph, i) =>
-      `<img src="assets/img/grid/${ph.id}.jpg" data-i="${i}" alt="${curProj.name} photo ${i + 1}" loading="lazy">`).join("");
+      `<img src="${imageUrl(`grid/${ph.id}.jpg`)}" data-i="${i}" alt="${curProj.name} photo ${i + 1}" loading="lazy">`).join("");
     $$("img", vwThumbs).forEach(t => t.addEventListener("click", () => goTo(+t.dataset.i)));
     vwStage.innerHTML = "";
     cur = makeFrame(fullSrc(curProj.photos[0]));

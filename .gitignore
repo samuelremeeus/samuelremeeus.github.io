@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.wrangler/
+
+# Generated working copies. Published website media is served from Cloudflare R2.
+/assets/img/
+/assets/video/

@@ -1,0 +1,27 @@
+{
+  "name": "portfolio-media",
+  "main": "src/index.mjs",
+  "account_id": "f12b6212bbf98c411f9ba57ec1e7ea54",
+  "compatibility_date": "2026-09-13",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "samuel-remeeus-portfolio-media"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.01
+    }
+  }
+}
