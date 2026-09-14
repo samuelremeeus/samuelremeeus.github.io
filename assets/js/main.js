@@ -120,7 +120,6 @@
       };
       row.addEventListener("click", openFrom);
       row.addEventListener("mouseenter", () => showPreview(p, row));
-      row.addEventListener("focus", () => showPreview(p, row));
       li.appendChild(row);
       plist.appendChild(li);
     });
@@ -131,10 +130,13 @@
   let plvRaf = null, plvX = 0, plvY = 0, plvTX = 0, plvTY = 0;
   const canHover = window.matchMedia("(hover:hover)").matches;
   function showPreview(p, row) {
-    if (!canHover || reduce || window.innerWidth <= 860) return;
+    if (
+      !canHover || reduce || window.innerWidth <= 860 ||
+      document.hidden || !document.hasFocus() || !row || !row.matches(":hover")
+    ) return;
     plvImg.src = imageUrl(`grid/${p.photos[0].id}.jpg`);
     plvImg.style.transform = `scale(${p.zoom || 1})`;
-    if (row && (plvTX === 0 && plvTY === 0)) {     // keyboard focus before any mouse move
+    if (row && (plvTX === 0 && plvTY === 0)) {     // first hover before any mouse move
       const r = row.getBoundingClientRect();
       plvTX = plvX = Math.round(r.left + r.width * 0.55);
       plvTY = plvY = Math.round(r.top + r.height / 2);
@@ -142,7 +144,13 @@
     plv.classList.add("on");
     if (!plvRaf) plvRaf = requestAnimationFrame(plvTick);
   }
-  function hidePreview() { plv.classList.remove("on"); }
+  function hidePreview() {
+    plv.classList.remove("on");
+    if (plvRaf !== null) {
+      cancelAnimationFrame(plvRaf);
+      plvRaf = null;
+    }
+  }
   if (plv) {
     document.addEventListener("mousemove", e => {
       const row = e.target.closest ? e.target.closest(".prow") : null;
@@ -159,9 +167,11 @@
     }, { passive: true });
     // the page can move under a stationary pointer; never leave the preview stranded
     window.addEventListener("scroll", hidePreview, { passive: true });
-    // leaving the tab/window mid-hover never fires mouseleave -> clear it on return
-    document.addEventListener("visibilitychange", () => { if (document.hidden) hidePreview(); });
+    // A tab/window transition can restore focus without a matching mouseleave.
+    document.addEventListener("visibilitychange", hidePreview);
     window.addEventListener("blur", hidePreview);
+    window.addEventListener("focus", hidePreview);
+    window.addEventListener("pagehide", hidePreview);
   }
   function plvTick() {
     plvX += (plvTX - plvX) * 0.16;
